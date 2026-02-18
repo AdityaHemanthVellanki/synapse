@@ -1,14 +1,14 @@
 export function LoadingSpinner({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
   const sizeClasses = {
-    sm: "w-4 h-4",
-    md: "w-8 h-8",
-    lg: "w-12 h-12",
+    sm: "w-3 h-3",
+    md: "w-5 h-5",
+    lg: "w-8 h-8",
   };
 
   return (
     <div className="flex items-center justify-center">
       <div
-        className={`${sizeClasses[size]} border-2 border-gray-600 border-t-synapse-500 rounded-full animate-spin`}
+        className={`${sizeClasses[size]} border border-gray-700 border-t-gray-400 rounded-full animate-spin`}
       />
     </div>
   );
@@ -17,10 +17,7 @@ export function LoadingSpinner({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
 export function PageLoader() {
   return (
     <div className="flex items-center justify-center min-h-[400px]">
-      <div className="text-center">
-        <LoadingSpinner size="lg" />
-        <p className="mt-4 text-gray-500 text-sm">Loading...</p>
-      </div>
+      <LoadingSpinner size="lg" />
     </div>
   );
 }

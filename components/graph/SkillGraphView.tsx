@@ -1,18 +1,15 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 import ReactFlow, {
   Node,
   Edge,
   Controls,
-  MiniMap,
-  Background,
-  BackgroundVariant,
   useNodesState,
   useEdgesState,
   NodeTypes,
-  MarkerType,
-  Panel,
+  Handle,
+  Position,
 } from "reactflow";
 import "reactflow/dist/style.css";
 
@@ -44,119 +41,248 @@ interface SkillGraphViewProps {
   dependencies: DepData[];
   cycles: CycleInfo[];
   onNodeClick: (skillId: string) => void;
+  selectedId?: string | null;
 }
 
-function SkillFlowNode({ data }: { data: SkillNodeData & { isCyclic: boolean } }) {
-  const borderColor =
-    data.priority > 0.7
-      ? "border-red-500/60"
-      : data.priority > 0.4
-      ? "border-synapse-500/60"
-      : "border-gray-600/60";
+// Domain -> color mapping
+const domainColors: Record<string, string> = {
+  "quantitative-analysis": "#8b5cf6",
+  "risk-management": "#ef4444",
+  "portfolio-management": "#3b82f6",
+  execution: "#10b981",
+  "signal-generation": "#f59e0b",
+  "data-analysis": "#06b6d4",
+  "market-microstructure": "#ec4899",
+  validation: "#6366f1",
+  analytics: "#14b8a6",
+};
 
-  const bgColor =
-    data.priority > 0.7
-      ? "bg-red-950/50"
-      : data.priority > 0.4
-      ? "bg-synapse-950/50"
-      : "bg-gray-900/50";
+function getColor(domain: string): string {
+  return domainColors[domain] ?? "#666666";
+}
+
+function CircleNode({
+  data,
+  selected,
+}: {
+  data: SkillNodeData & { connectionCount: number; isSelected: boolean };
+  selected: boolean;
+}) {
+  const color = getColor(data.domain);
+  const baseSize = 8 + data.connectionCount * 3;
+  const size = Math.min(Math.max(baseSize, 10), 28);
+  const isActive = data.isSelected || selected;
 
   return (
-    <div
-      className={`${bgColor} ${borderColor} border-2 rounded-xl px-4 py-3 backdrop-blur-sm min-w-[180px] ${
-        data.isCyclic ? "ring-2 ring-yellow-500/50" : ""
-      }`}
-    >
-      <div className="flex items-center justify-between mb-1">
-        <span className="text-xs font-medium text-synapse-300 uppercase tracking-wider">
-          {data.domain}
-        </span>
-        <span
-          className={`text-xs font-bold ${
-            data.priority > 0.7 ? "text-red-400" : "text-gray-400"
-          }`}
-        >
-          P:{data.priority}
-        </span>
-      </div>
-      <div className="font-semibold text-white text-sm">{data.title}</div>
-      <div className="text-xs text-gray-400 mt-1 line-clamp-2">
-        {data.description}
-      </div>
-      <div className="flex items-center justify-between mt-2">
-        <span className="text-xs text-gray-500">v{data.version}</span>
-        <span className="text-xs text-yellow-400/70">
-          Cost: {data.contextBudgetCost}
-        </span>
-      </div>
-      {data.isCyclic && (
-        <div className="text-xs text-yellow-400 mt-1 font-medium">
-          Cycle detected
-        </div>
+    <div className="relative group" style={{ width: size * 2, height: size * 2 }}>
+      <Handle type="target" position={Position.Top} className="!bg-transparent !border-0 !w-0 !h-0" />
+      <Handle type="source" position={Position.Bottom} className="!bg-transparent !border-0 !w-0 !h-0" />
+
+      {/* Glow */}
+      {isActive && (
+        <div
+          className="absolute inset-0 rounded-full blur-md opacity-40"
+          style={{ background: color, transform: "scale(2)" }}
+        />
       )}
+
+      {/* Node circle */}
+      <div
+        className="absolute inset-0 rounded-full transition-all duration-200 cursor-pointer"
+        style={{
+          background: isActive ? color : `${color}88`,
+          boxShadow: isActive
+            ? `0 0 20px ${color}66, 0 0 40px ${color}22`
+            : `0 0 6px ${color}33`,
+          border: `1.5px solid ${isActive ? color : `${color}66`}`,
+        }}
+      />
+
+      {/* Label */}
+      <div
+        className="absolute left-1/2 -translate-x-1/2 whitespace-nowrap pointer-events-none transition-opacity duration-200"
+        style={{
+          top: size * 2 + 6,
+          opacity: isActive ? 1 : 0.6,
+        }}
+      >
+        <span
+          className="text-[10px] font-medium"
+          style={{ color: isActive ? "#e0e0e0" : "#555" }}
+        >
+          {data.title.toLowerCase().replace(/ /g, "-")}
+        </span>
+      </div>
     </div>
   );
 }
 
 const nodeTypes: NodeTypes = {
-  skill: SkillFlowNode,
+  circle: CircleNode,
 };
+
+// Simple force-directed-ish layout using circular arrangement with domain clustering
+function computeLayout(
+  skills: SkillNodeData[],
+  dependencies: DepData[]
+): Map<string, { x: number; y: number }> {
+  const positions = new Map<string, { x: number; y: number }>();
+
+  // Group by domain
+  const domains = new Map<string, SkillNodeData[]>();
+  for (const skill of skills) {
+    const group = domains.get(skill.domain) ?? [];
+    group.push(skill);
+    domains.set(skill.domain, group);
+  }
+
+  const domainList = Array.from(domains.entries());
+  const totalNodes = skills.length;
+  const radius = Math.max(200, totalNodes * 18);
+  const centerX = 0;
+  const centerY = 0;
+
+  let globalIndex = 0;
+
+  for (let d = 0; d < domainList.length; d++) {
+    const [, domainSkills] = domainList[d];
+    const domainAngle = (d / domainList.length) * Math.PI * 2;
+    const domainCenterX = centerX + radius * 0.5 * Math.cos(domainAngle);
+    const domainCenterY = centerY + radius * 0.5 * Math.sin(domainAngle);
+
+    for (let i = 0; i < domainSkills.length; i++) {
+      const spread = 120 + domainSkills.length * 25;
+      const angle = domainAngle + ((i - domainSkills.length / 2) * 0.5);
+      const dist = spread * (0.5 + Math.random() * 0.5);
+
+      positions.set(domainSkills[i].id, {
+        x: domainCenterX + dist * Math.cos(angle) + (Math.random() - 0.5) * 60,
+        y: domainCenterY + dist * Math.sin(angle) + (Math.random() - 0.5) * 60,
+      });
+      globalIndex++;
+    }
+  }
+
+  // Simple spring simulation (few iterations for connected nodes)
+  const idToPos = positions;
+  for (let iter = 0; iter < 30; iter++) {
+    // Attraction along edges
+    for (const dep of dependencies) {
+      const a = idToPos.get(dep.fromSkillId);
+      const b = idToPos.get(dep.toSkillId);
+      if (!a || !b) continue;
+
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+      const force = (dist - 150) * 0.01;
+
+      a.x += dx / dist * force;
+      a.y += dy / dist * force;
+      b.x -= dx / dist * force;
+      b.y -= dy / dist * force;
+    }
+
+    // Repulsion between all nodes
+    const allIds = Array.from(idToPos.keys());
+    for (let i = 0; i < allIds.length; i++) {
+      for (let j = i + 1; j < allIds.length; j++) {
+        const a = idToPos.get(allIds[i])!;
+        const b = idToPos.get(allIds[j])!;
+
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+
+        if (dist < 100) {
+          const force = (100 - dist) * 0.05;
+          a.x -= dx / dist * force;
+          a.y -= dy / dist * force;
+          b.x += dx / dist * force;
+          b.y += dy / dist * force;
+        }
+      }
+    }
+  }
+
+  return positions;
+}
 
 export function SkillGraphView({
   skills,
   dependencies,
   cycles,
   onNodeClick,
+  selectedId,
 }: SkillGraphViewProps) {
-  const cyclicNodeIds = useMemo(() => {
-    const ids = new Set<string>();
-    for (const c of cycles) {
-      for (const id of c.cycle) {
-        ids.add(id);
-      }
+  // Count connections per node
+  const connectionCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const dep of dependencies) {
+      counts.set(dep.fromSkillId, (counts.get(dep.fromSkillId) ?? 0) + 1);
+      counts.set(dep.toSkillId, (counts.get(dep.toSkillId) ?? 0) + 1);
     }
-    return ids;
-  }, [cycles]);
-
-  const initialNodes: Node[] = useMemo(() => {
-    // Simple force-directed layout approximation
-    const cols = Math.ceil(Math.sqrt(skills.length));
-    return skills.map((skill, i) => ({
-      id: skill.id,
-      type: "skill",
-      position: {
-        x: (i % cols) * 280 + Math.random() * 40,
-        y: Math.floor(i / cols) * 180 + Math.random() * 30,
-      },
-      data: {
-        ...skill,
-        isCyclic: cyclicNodeIds.has(skill.id),
-      },
-    }));
-  }, [skills, cyclicNodeIds]);
-
-  const initialEdges: Edge[] = useMemo(() => {
-    return dependencies.map((dep) => ({
-      id: dep.id,
-      source: dep.fromSkillId,
-      target: dep.toSkillId,
-      animated: dep.type === "REQUIRED",
-      style: {
-        stroke: dep.type === "REQUIRED" ? "#4c6ef5" : "#555",
-        strokeWidth: dep.type === "REQUIRED" ? 2 : 1,
-        strokeDasharray: dep.type === "OPTIONAL" ? "5 5" : undefined,
-      },
-      markerEnd: {
-        type: MarkerType.ArrowClosed,
-        color: dep.type === "REQUIRED" ? "#4c6ef5" : "#555",
-      },
-      label: dep.type === "OPTIONAL" ? "optional" : undefined,
-      labelStyle: { fill: "#666", fontSize: 10 },
-    }));
+    return counts;
   }, [dependencies]);
 
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  const positions = useMemo(
+    () => computeLayout(skills, dependencies),
+    [skills, dependencies]
+  );
+
+  // Connected node IDs for selected node
+  const connectedIds = useMemo(() => {
+    if (!selectedId) return new Set<string>();
+    const ids = new Set<string>([selectedId]);
+    for (const dep of dependencies) {
+      if (dep.fromSkillId === selectedId) ids.add(dep.toSkillId);
+      if (dep.toSkillId === selectedId) ids.add(dep.fromSkillId);
+    }
+    return ids;
+  }, [selectedId, dependencies]);
+
+  const initialNodes: Node[] = useMemo(() => {
+    return skills.map((skill) => {
+      const pos = positions.get(skill.id) ?? { x: 0, y: 0 };
+      return {
+        id: skill.id,
+        type: "circle",
+        position: pos,
+        data: {
+          ...skill,
+          connectionCount: connectionCounts.get(skill.id) ?? 0,
+          isSelected: selectedId ? connectedIds.has(skill.id) : false,
+        },
+      };
+    });
+  }, [skills, positions, connectionCounts, selectedId, connectedIds]);
+
+  const initialEdges: Edge[] = useMemo(() => {
+    return dependencies.map((dep) => {
+      const isHighlighted =
+        selectedId &&
+        (dep.fromSkillId === selectedId || dep.toSkillId === selectedId);
+
+      const isOptional = dep.type === "OPTIONAL";
+
+      return {
+        id: dep.id,
+        source: dep.fromSkillId,
+        target: dep.toSkillId,
+        type: "default",
+        style: {
+          stroke: isHighlighted ? "#666" : isOptional ? "#1a1a1a" : "#222",
+          strokeWidth: isHighlighted ? 1.5 : 0.8,
+          strokeDasharray: isOptional ? "4 4" : undefined,
+          opacity: selectedId ? (isHighlighted ? 1 : 0.15) : 0.6,
+        },
+        animated: false,
+      };
+    });
+  }, [dependencies, selectedId]);
+
+  const [nodes, , onNodesChange] = useNodesState(initialNodes);
+  const [edges, , onEdgesChange] = useEdgesState(initialEdges);
 
   const handleNodeClick = useCallback(
     (_: React.MouseEvent, node: Node) => {
@@ -165,80 +291,27 @@ export function SkillGraphView({
     [onNodeClick]
   );
 
+  const handlePaneClick = useCallback(() => {
+    onNodeClick("");
+  }, [onNodeClick]);
+
   return (
-    <div className="w-full h-full">
+    <div className="w-full h-full bg-black">
       <ReactFlow
         nodes={nodes}
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onNodeClick={handleNodeClick}
+        onPaneClick={handlePaneClick}
         nodeTypes={nodeTypes}
         fitView
-        fitViewOptions={{ padding: 0.2 }}
-        minZoom={0.2}
-        maxZoom={2}
-        defaultEdgeOptions={{
-          type: "smoothstep",
-        }}
+        fitViewOptions={{ padding: 0.3 }}
+        minZoom={0.1}
+        maxZoom={3}
+        proOptions={{ hideAttribution: true }}
       >
-        <Controls />
-        <MiniMap
-          nodeStrokeWidth={3}
-          zoomable
-          pannable
-          nodeColor={(node) => {
-            const data = node.data as SkillNodeData & { isCyclic: boolean };
-            if (data.isCyclic) return "#eab308";
-            if (data.priority > 0.7) return "#ef4444";
-            if (data.priority > 0.4) return "#4c6ef5";
-            return "#6b7280";
-          }}
-        />
-        <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#1a1a2e" />
-
-        <Panel position="top-left" className="glass-panel p-3 text-xs space-y-1">
-          <div className="font-medium text-white mb-2">Legend</div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded bg-red-500" />
-            <span className="text-gray-400">High priority (&gt;0.7)</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded bg-synapse-500" />
-            <span className="text-gray-400">Standard priority</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded bg-gray-600" />
-            <span className="text-gray-400">Low priority</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-0 border border-synapse-500" />
-            <span className="text-gray-400">Required dep</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-0 border border-dashed border-gray-500" />
-            <span className="text-gray-400">Optional dep</span>
-          </div>
-          {cycles.length > 0 && (
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded ring-2 ring-yellow-500 bg-transparent" />
-              <span className="text-yellow-400">Cycle member</span>
-            </div>
-          )}
-        </Panel>
-
-        {cycles.length > 0 && (
-          <Panel position="top-right" className="glass-panel p-3 border-yellow-500/30">
-            <div className="text-sm font-medium text-yellow-400 mb-1">
-              Cycles Detected ({cycles.length})
-            </div>
-            {cycles.map((c, i) => (
-              <div key={i} className="text-xs text-gray-400">
-                {c.nodeNames.join(" → ")}
-              </div>
-            ))}
-          </Panel>
-        )}
+        <Controls showInteractive={false} showZoom={true} showFitView={true} />
       </ReactFlow>
     </div>
   );

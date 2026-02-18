@@ -23,12 +23,22 @@ export function parseSkillMarkdown(rawContent: string): ParseResult {
   try {
     const { data, content } = matter(rawContent);
 
+    if (!data || Object.keys(data).length === 0) {
+      return {
+        success: false,
+        error: "No YAML frontmatter found. Skill files must start with --- delimited YAML containing title, description, version, domain, priority, activation, inputs, outputs, dependencies, context_budget_cost, and evaluation fields.",
+      };
+    }
+
     const validation = validateSkillFrontmatter(data);
     if (!validation.valid) {
+      const issues = validation.errors
+        ?.map((e) => `${e.path.join(".")}: ${e.message}`)
+        .join("; ") ?? "Unknown validation error";
       return {
         success: false,
         validation,
-        error: "YAML frontmatter validation failed",
+        error: `YAML frontmatter validation failed — ${issues}`,
       };
     }
 

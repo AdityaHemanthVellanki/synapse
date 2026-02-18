@@ -46,9 +46,6 @@ interface AnalyticsData {
     maxDepth: number;
     averageContextCost: number;
   };
-  topActivated: Array<{ skillId: string; title: string; activationCount: number }>;
-  domains: Record<string, number>;
-  totalExecutions: number;
 }
 
 export default function GraphPage() {
@@ -66,78 +63,51 @@ export default function GraphPage() {
   }, [selectedSkillId, data]);
 
   if (loading) return <PageLoader />;
-  if (!data) return <div className="text-red-400">Repository not found</div>;
+  if (!data) return <div className="text-red-400/60 text-sm">not found</div>;
 
   const repo = data.repository;
   const allDependencies = repo.skillNodes.flatMap((s) => s.dependenciesFrom);
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)]">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <Link
-            href={`/repository/${id}`}
-            className="text-sm text-gray-500 hover:text-gray-300 mb-1 block"
-          >
-            &larr; Back to {repo.fullName}
-          </Link>
-          <h1 className="text-xl font-bold text-white">Skill Graph</h1>
-        </div>
-
+    <div className="flex flex-col h-[calc(100vh-3.5rem)]" style={{ margin: "-2rem -1.5rem 0", padding: 0 }}>
+      {/* Minimal top bar overlaid on graph */}
+      <div className="absolute top-16 left-6 z-10 flex items-center gap-4">
+        <Link
+          href={`/repository/${id}`}
+          className="text-xs text-gray-600 hover:text-gray-400 transition-colors"
+        >
+          &larr; back
+        </Link>
         {analytics && (
-          <div className="flex items-center gap-4 text-sm">
-            <div className="text-center">
-              <span className="text-synapse-400 font-bold">
-                {analytics.analysis.totalNodes}
-              </span>
-              <span className="text-gray-500 ml-1">nodes</span>
-            </div>
-            <div className="text-center">
-              <span className="text-blue-400 font-bold">
-                {analytics.analysis.totalEdges}
-              </span>
-              <span className="text-gray-500 ml-1">edges</span>
-            </div>
-            <div className="text-center">
-              <span
-                className={`font-bold ${
-                  analytics.analysis.cycles.length > 0
-                    ? "text-yellow-400"
-                    : "text-green-400"
-                }`}
-              >
-                {analytics.analysis.cycles.length}
-              </span>
-              <span className="text-gray-500 ml-1">cycles</span>
-            </div>
-            <div className="text-center">
-              <span className="text-gray-400 font-bold">
-                {analytics.analysis.averageDepth}
-              </span>
-              <span className="text-gray-500 ml-1">avg depth</span>
-            </div>
-            <div className="text-center">
-              <span className="text-yellow-400 font-bold">
-                {analytics.analysis.averageContextCost}
-              </span>
-              <span className="text-gray-500 ml-1">avg cost</span>
-            </div>
+          <div className="flex items-center gap-3 text-[10px] text-gray-600 font-mono">
+            <span>{analytics.analysis.totalNodes} nodes</span>
+            <span className="text-gray-800">|</span>
+            <span>{analytics.analysis.totalEdges} edges</span>
+            {analytics.analysis.cycles.length > 0 && (
+              <>
+                <span className="text-gray-800">|</span>
+                <span className="text-yellow-600">
+                  {analytics.analysis.cycles.length} cycles
+                </span>
+              </>
+            )}
           </div>
         )}
       </div>
 
-      <div className="flex flex-1 rounded-xl overflow-hidden border border-gray-700/50">
+      <div className="flex flex-1 overflow-hidden">
         <div className="flex-1">
           {repo.skillNodes.length === 0 ? (
-            <div className="flex items-center justify-center h-full text-gray-500">
-              No skills to visualize. Sync your repository first.
+            <div className="flex items-center justify-center h-full text-xs text-gray-600">
+              no skills to visualize
             </div>
           ) : (
             <SkillGraphView
               skills={repo.skillNodes}
               dependencies={allDependencies}
               cycles={analytics?.analysis.cycles ?? []}
-              onNodeClick={setSelectedSkillId}
+              onNodeClick={(id) => setSelectedSkillId(id || null)}
+              selectedId={selectedSkillId}
             />
           )}
         </div>

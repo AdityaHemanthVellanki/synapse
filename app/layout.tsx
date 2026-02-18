@@ -6,9 +6,8 @@ import { Providers } from "./providers";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Synapse - Agent-Native Skill Composition Engine",
-  description:
-    "Build, visualize, and compose executable skill graphs for AI agents",
+  title: "Synapse",
+  description: "Agent-native skill composition engine",
 };
 
 export default function RootLayout({
@@ -17,8 +16,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark">
-      <body className={`${inter.className} text-gray-200 antialiased`}>
+    <html lang="en">
+      <body className={`${inter.className} antialiased`}>
         <Providers>{children}</Providers>
       </body>
     </html>

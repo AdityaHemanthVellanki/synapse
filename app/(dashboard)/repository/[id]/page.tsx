@@ -1,6 +1,6 @@
 "use client";
 
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { useApi, apiPost } from "@/hooks/use-api";
 import { PageLoader, LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import Link from "next/link";
@@ -46,13 +46,11 @@ interface RepoData {
 export default function RepositoryPage() {
   const params = useParams();
   const id = params.id as string;
-  const { data, loading, refetch } = useApi<RepoData>(
-    `/api/repositories/${id}`
-  );
+  const { data, loading, refetch } = useApi<RepoData>(`/api/repositories/${id}`);
   const [syncing, setSyncing] = useState(false);
 
   if (loading) return <PageLoader />;
-  if (!data) return <div className="text-red-400">Repository not found</div>;
+  if (!data) return <div className="text-sm text-red-400/60">not found</div>;
 
   const repo = data.repository;
   const invalidFiles = repo.fileIndices.filter((f) => !f.isValid);
@@ -63,7 +61,7 @@ export default function RepositoryPage() {
       await apiPost(`/api/repositories/${id}/sync`, {});
       refetch();
     } catch {
-      // error handled by UI
+      // handled
     } finally {
       setSyncing(false);
     }
@@ -71,128 +69,123 @@ export default function RepositoryPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between mb-10">
         <div>
-          <Link href="/dashboard" className="text-sm text-gray-500 hover:text-gray-300 mb-2 block">
-            &larr; Back to repositories
+          <Link href="/dashboard" className="text-xs text-gray-600 hover:text-gray-400 mb-2 block">
+            &larr; back
           </Link>
-          <h1 className="text-2xl font-bold text-white">{repo.fullName}</h1>
-          <div className="flex items-center gap-4 mt-2 text-sm text-gray-400">
-            <span>Branch: {repo.selectedBranch ?? repo.defaultBranch}</span>
-            <span>Path: {repo.rootPath}</span>
+          <h1 className="text-lg font-medium text-white">{repo.fullName}</h1>
+          <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-600 font-mono">
+            <span>{repo.selectedBranch ?? repo.defaultBranch}</span>
+            <span>{repo.rootPath}</span>
           </div>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-2">
           <button
             onClick={handleSync}
             disabled={syncing}
             className="btn-secondary flex items-center gap-2"
           >
             {syncing && <LoadingSpinner size="sm" />}
-            {syncing ? "Syncing..." : "Re-sync"}
+            {syncing ? "syncing..." : "re-sync"}
           </button>
           <Link href={`/repository/${id}/graph`} className="btn-primary">
-            View Graph
+            graph
           </Link>
-          <Link href={`/repository/${id}/compose`} className="btn-primary">
-            Compose
+          <Link href={`/repository/${id}/compose`} className="btn-secondary">
+            compose
           </Link>
         </div>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-4 gap-3 mb-10">
         <div className="stat-card">
-          <div className="text-2xl font-bold text-synapse-400">
-            {repo._count.skillNodes}
-          </div>
-          <div className="text-sm text-gray-400 mt-1">Skills</div>
+          <div className="text-lg font-mono text-gray-300">{repo._count.skillNodes}</div>
+          <div className="text-[10px] text-gray-600 mt-0.5">skills</div>
         </div>
         <div className="stat-card">
-          <div className="text-2xl font-bold text-blue-400">
-            {repo._count.skillDependencies}
-          </div>
-          <div className="text-sm text-gray-400 mt-1">Dependencies</div>
+          <div className="text-lg font-mono text-gray-300">{repo._count.skillDependencies}</div>
+          <div className="text-[10px] text-gray-600 mt-0.5">dependencies</div>
         </div>
         <div className="stat-card">
-          <div className="text-2xl font-bold text-green-400">
-            {repo._count.executionLogs}
-          </div>
-          <div className="text-sm text-gray-400 mt-1">Executions</div>
+          <div className="text-lg font-mono text-gray-300">{repo._count.executionLogs}</div>
+          <div className="text-[10px] text-gray-600 mt-0.5">executions</div>
         </div>
         <div className="stat-card">
-          <div className="text-2xl font-bold text-yellow-400">
-            {invalidFiles.length}
-          </div>
-          <div className="text-sm text-gray-400 mt-1">Invalid Files</div>
+          <div className="text-lg font-mono text-gray-300">{invalidFiles.length}</div>
+          <div className="text-[10px] text-gray-600 mt-0.5">invalid</div>
         </div>
       </div>
 
       {/* Skills */}
-      <h2 className="text-lg font-semibold text-white mb-4">
-        Skill Nodes ({repo.skillNodes.length})
-      </h2>
+      <div className="mb-6">
+        <span className="text-xs text-gray-600 uppercase tracking-wider">
+          skills ({repo.skillNodes.length})
+        </span>
+      </div>
 
       {repo.skillNodes.length === 0 ? (
-        <div className="glass-panel p-8 text-center">
-          <p className="text-gray-400">
-            No valid skill files found. Make sure your markdown files have valid YAML frontmatter.
+        <div className="panel p-6">
+          <p className="text-xs text-gray-500 mb-4">
+            no valid skill files found. markdown files must contain yaml frontmatter matching the synapse schema:
           </p>
+          <pre className="text-[11px] text-gray-600 bg-black rounded-md p-4 overflow-x-auto font-mono">{`---
+title: My Skill Name
+description: What this skill does
+version: "1.0.0"
+domain: my-domain
+priority: 0.5
+activation:
+  triggers: [keyword1, keyword2]
+  required_context: []
+inputs:
+  - name: input_name
+    schema: "string"
+    required: true
+outputs:
+  - name: output_name
+    schema: "string"
+dependencies:
+  required: []
+  optional: []
+context_budget_cost: 1.0
+evaluation:
+  success_criteria: [criterion]
+  failure_modes: [failure mode]
+---
+
+## Procedure
+Step-by-step instructions.
+
+## Reasoning
+Why this skill exists.`}</pre>
         </div>
       ) : (
-        <div className="grid gap-3 mb-8">
+        <div className="space-y-px mb-10">
           {repo.skillNodes.map((skill) => (
             <Link
               key={skill.id}
               href={`/repository/${id}/skill/${skill.id}`}
-              className="card flex items-center justify-between hover:border-synapse-500/30"
+              className="flex items-center justify-between p-3.5 border-b border-[#111] hover:bg-[#0a0a0a] transition-colors group"
             >
-              <div className="flex-1">
-                <div className="flex items-center gap-3">
-                  <h3 className="font-medium text-white">{skill.title}</h3>
-                  <span className="badge-blue">{skill.domain}</span>
-                  <span className="text-xs text-gray-500">v{skill.version}</span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-300 group-hover:text-white transition-colors">
+                    {skill.title}
+                  </span>
+                  <span className="badge-purple">{skill.domain}</span>
                 </div>
-                <p className="text-sm text-gray-400 mt-1 line-clamp-1">
+                <p className="text-xs text-gray-600 mt-0.5 truncate">
                   {skill.description}
                 </p>
-                <div className="flex items-center gap-2 mt-2">
-                  {skill.activationTriggers.slice(0, 3).map((t) => (
-                    <span
-                      key={t}
-                      className="text-xs px-2 py-0.5 rounded bg-gray-800 text-gray-400"
-                    >
-                      {t}
-                    </span>
-                  ))}
-                  {skill.activationTriggers.length > 3 && (
-                    <span className="text-xs text-gray-500">
-                      +{skill.activationTriggers.length - 3} more
-                    </span>
-                  )}
-                </div>
               </div>
-              <div className="flex items-center gap-6 ml-4">
-                <div className="text-center">
-                  <div
-                    className={`text-lg font-bold ${
-                      skill.priority > 0.7
-                        ? "text-red-400"
-                        : skill.priority > 0.4
-                        ? "text-yellow-400"
-                        : "text-gray-400"
-                    }`}
-                  >
-                    {skill.priority}
-                  </div>
-                  <div className="text-xs text-gray-500">Priority</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-lg font-bold text-gray-400">
-                    {skill.contextBudgetCost}
-                  </div>
-                  <div className="text-xs text-gray-500">Cost</div>
-                </div>
+              <div className="flex items-center gap-4 ml-4 text-xs font-mono text-gray-600">
+                <span>p:{skill.priority}</span>
+                <span>c:{skill.contextBudgetCost}</span>
+                <svg className="w-3.5 h-3.5 text-gray-700 group-hover:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5l7 7-7 7" />
+                </svg>
               </div>
             </Link>
           ))}
@@ -201,28 +194,23 @@ export default function RepositoryPage() {
 
       {/* Invalid Files */}
       {invalidFiles.length > 0 && (
-        <>
-          <h2 className="text-lg font-semibold text-white mb-4">
-            Invalid Files ({invalidFiles.length})
-          </h2>
-          <div className="space-y-2">
+        <div>
+          <div className="mb-4">
+            <span className="text-xs text-gray-600 uppercase tracking-wider">
+              invalid files ({invalidFiles.length})
+            </span>
+          </div>
+          <div className="space-y-1">
             {invalidFiles.map((file) => (
-              <div
-                key={file.filePath}
-                className="glass-panel p-4 border-red-500/20"
-              >
-                <div className="font-mono text-sm text-red-400">
-                  {file.filePath}
-                </div>
+              <div key={file.filePath} className="p-3 rounded-md bg-[#0a0a0a] border border-[#1a1a1a]">
+                <div className="font-mono text-xs text-red-400/60">{file.filePath}</div>
                 {file.errorMessage && (
-                  <div className="text-sm text-gray-400 mt-1">
-                    {file.errorMessage}
-                  </div>
+                  <div className="text-[11px] text-gray-600 mt-1">{file.errorMessage}</div>
                 )}
               </div>
             ))}
           </div>
-        </>
+        </div>
       )}
     </div>
   );

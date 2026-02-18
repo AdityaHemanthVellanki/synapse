@@ -22,7 +22,7 @@ export default function ComposePage() {
   const [error, setError] = useState<string | null>(null);
 
   if (loading) return <PageLoader />;
-  if (!repoData) return <div className="text-red-400">Repository not found</div>;
+  if (!repoData) return <div className="text-sm text-red-400/60">not found</div>;
 
   async function handleCompose() {
     if (!query.trim()) return;
@@ -52,54 +52,43 @@ export default function ComposePage() {
     <div>
       <Link
         href={`/repository/${id}`}
-        className="text-sm text-gray-500 hover:text-gray-300 mb-4 block"
+        className="text-xs text-gray-600 hover:text-gray-400 mb-6 block"
       >
-        &larr; Back to {repoData.repository.fullName}
+        &larr; back
       </Link>
 
-      <h1 className="text-2xl font-bold text-white mb-2">
-        Skill Composition Engine
-      </h1>
-      <p className="text-gray-400 mb-8">
-        Enter a query to activate and compose skills into an execution plan
+      <h1 className="text-lg font-medium text-white mb-1">compose</h1>
+      <p className="text-xs text-gray-600 mb-8">
+        query to activate and compose skills into an execution plan
       </p>
 
-      <div className="glass-panel p-6 mb-8">
+      <div className="panel p-5 mb-8">
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">
-              Query
-            </label>
+            <label className="block text-xs text-gray-500 mb-1.5">query</label>
             <input
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleCompose()}
-              placeholder="e.g., I need to assess risk and size a position for a volatile asset"
-              className="input-field text-lg"
+              placeholder="e.g., assess risk and size a position for a volatile asset"
+              className="input-field"
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">
-                Context State (comma-separated)
-              </label>
+              <label className="block text-xs text-gray-500 mb-1.5">context state</label>
               <input
                 type="text"
                 value={contextState}
                 onChange={(e) => setContextState(e.target.value)}
-                placeholder="e.g., market_data, portfolio_state"
+                placeholder="market_data, portfolio_state"
                 className="input-field"
               />
-              <p className="text-xs text-gray-500 mt-1">
-                Current context available to the agent
-              </p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">
-                Context Budget
-              </label>
+              <label className="block text-xs text-gray-500 mb-1.5">budget</label>
               <input
                 type="number"
                 value={contextBudget}
@@ -110,9 +99,6 @@ export default function ComposePage() {
                 step="0.5"
                 className="input-field"
               />
-              <p className="text-xs text-gray-500 mt-1">
-                Maximum context units to allocate
-              </p>
             </div>
           </div>
 
@@ -122,13 +108,13 @@ export default function ComposePage() {
             className="btn-primary flex items-center gap-2"
           >
             {composing && <LoadingSpinner size="sm" />}
-            {composing ? "Composing..." : "Compose Skill Chain"}
+            {composing ? "composing..." : "compose"}
           </button>
         </div>
       </div>
 
       {error && (
-        <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 mb-8">
+        <div className="text-xs text-red-400/60 bg-red-500/5 border border-red-500/10 rounded-md p-3 mb-8">
           {error}
         </div>
       )}
