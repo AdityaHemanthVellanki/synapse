@@ -1,0 +1,157 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String       @id @default(cuid())
+  name          String?
+  email         String?      @unique
+  emailVerified DateTime?
+  image         String?
+  accounts      Account[]
+  sessions      Session[]
+  repositories  Repository[]
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Repository {
+  id                String            @id @default(cuid())
+  userId            String
+  githubId          Int               @unique
+  fullName          String
+  defaultBranch     String            @default("main")
+  selectedBranch    String?
+  rootPath          String            @default("/")
+  webhookId         Int?
+  webhookSecret     String?
+  lastSyncedAt      DateTime?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skillNodes        SkillNode[]
+  skillDependencies SkillDependency[]
+  fileIndices       FileIndex[]
+  executionLogs     ExecutionLog[]
+
+  @@index([userId])
+}
+
+model SkillNode {
+  id                       String            @id @default(cuid())
+  repositoryId             String
+  filePath                 String
+  title                    String
+  description              String            @db.Text
+  version                  String
+  domain                   String
+  priority                 Float             @default(0.5)
+  activationTriggers       String[]
+  activationRequiredContext String[]
+  inputSchema              Json
+  outputSchema             Json
+  contextBudgetCost        Float             @default(1.0)
+  procedureContent         String            @db.Text
+  reasoningContent         String?           @db.Text
+  evaluationSuccess        String[]
+  evaluationFailure        String[]
+  contentHash              String
+  createdAt                DateTime          @default(now())
+  updatedAt                DateTime          @updatedAt
+
+  repository               Repository        @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  dependenciesFrom         SkillDependency[] @relation("FromSkill")
+  dependenciesTo           SkillDependency[] @relation("ToSkill")
+
+  @@unique([repositoryId, filePath])
+  @@index([repositoryId])
+  @@index([domain])
+}
+
+model SkillDependency {
+  id           String     @id @default(cuid())
+  repositoryId String
+  fromSkillId  String
+  toSkillId    String
+  type         DepType    @default(REQUIRED)
+
+  repository   Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  fromSkill    SkillNode  @relation("FromSkill", fields: [fromSkillId], references: [id], onDelete: Cascade)
+  toSkill      SkillNode  @relation("ToSkill", fields: [toSkillId], references: [id], onDelete: Cascade)
+
+  @@unique([fromSkillId, toSkillId])
+  @@index([repositoryId])
+}
+
+enum DepType {
+  REQUIRED
+  OPTIONAL
+}
+
+model FileIndex {
+  id           String     @id @default(cuid())
+  repositoryId String
+  filePath     String
+  contentHash  String
+  isValid      Boolean    @default(false)
+  errorMessage String?    @db.Text
+  lastIndexed  DateTime   @default(now())
+
+  repository   Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+
+  @@unique([repositoryId, filePath])
+  @@index([repositoryId])
+}
+
+model ExecutionLog {
+  id             String   @id @default(cuid())
+  repositoryId   String
+  query          String   @db.Text
+  selectedSkills String[]
+  executionPlan  Json
+  contextUsage   Float    @default(0)
+  createdAt      DateTime @default(now())
+
+  repository     Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+
+  @@index([repositoryId])
+}
