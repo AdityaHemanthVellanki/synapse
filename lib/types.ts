@@ -59,35 +59,6 @@ export interface ParsedSkill {
   rawContent: string;
 }
 
-export interface ActivationScore {
-  skillId: string;
-  title: string;
-  score: number;
-  triggerMatches: string[];
-  contextOverlap: string[];
-  domainRelevance: number;
-  priorityWeight: number;
-}
-
-export interface ExecutionPlan {
-  orderedSkills: OrderedSkillEntry[];
-  reasoning: string[];
-  contextUsage: number;
-  contextBudget: number;
-  unresolvedDependencies: string[];
-}
-
-export interface OrderedSkillEntry {
-  skillId: string;
-  title: string;
-  domain: string;
-  priority: number;
-  contextCost: number;
-  inputs: SkillInput[];
-  outputs: SkillOutput[];
-  dependsOn: string[];
-}
-
 export interface GraphNode {
   id: string;
   title: string;
@@ -125,14 +96,6 @@ export interface GraphAnalysis {
   averageContextCost: number;
 }
 
-export interface CompositionResult {
-  activationRanking: ActivationScore[];
-  selectedRootSkill: ActivationScore | null;
-  executionPlan: ExecutionPlan;
-  graphAnalysis: GraphAnalysis;
-  reasoning: string[];
-}
-
 export interface GitHubFile {
   path: string;
   sha: string;
@@ -144,4 +107,30 @@ export interface GitHubTreeResponse {
   sha: string;
   tree: GitHubFile[];
   truncated: boolean;
+}
+
+export interface ValidationIssue {
+  skillId: string;
+  skillTitle: string;
+  type: "error" | "warning";
+  message: string;
+}
+
+export interface ValidationReport {
+  valid: boolean;
+  issues: ValidationIssue[];
+  summary: {
+    totalSkills: number;
+    validSkills: number;
+    errors: number;
+    warnings: number;
+  };
+}
+
+export interface ExportManifest {
+  name: string;
+  version: string;
+  skills: string[];
+  exportedAt: string;
+  source: string;
 }

@@ -30,7 +30,7 @@ export default function LoginPage() {
             synapse
           </h1>
           <p className="text-sm text-gray-600">
-            skill composition engine
+            skill graph authoring platform
           </p>
         </div>
 
@@ -41,11 +41,11 @@ export default function LoginPage() {
           </div>
           <div className="flex items-center gap-3">
             <span className="text-gray-600 font-mono text-xs w-4">2</span>
-            <span>parse, validate, and build skill graphs</span>
+            <span>author, validate, and visualize skill graphs</span>
           </div>
           <div className="flex items-center gap-3">
             <span className="text-gray-600 font-mono text-xs w-4">3</span>
-            <span>compose executable skill chains</span>
+            <span>export to claude code skill format</span>
           </div>
         </div>
 

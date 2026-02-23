@@ -38,7 +38,7 @@ interface RepoData {
     _count: {
       skillNodes: number;
       skillDependencies: number;
-      executionLogs: number;
+      exportLogs: number;
     };
   };
 }
@@ -89,11 +89,11 @@ export default function RepositoryPage() {
             {syncing && <LoadingSpinner size="sm" />}
             {syncing ? "syncing..." : "re-sync"}
           </button>
-          <Link href={`/repository/${id}/graph`} className="btn-primary">
+          <Link href={`/repository/${id}/graph`} className="btn-secondary">
             graph
           </Link>
-          <Link href={`/repository/${id}/compose`} className="btn-secondary">
-            compose
+          <Link href={`/repository/${id}/export`} className="btn-primary">
+            export
           </Link>
         </div>
       </div>
@@ -109,8 +109,8 @@ export default function RepositoryPage() {
           <div className="text-[10px] text-gray-600 mt-0.5">dependencies</div>
         </div>
         <div className="stat-card">
-          <div className="text-lg font-mono text-gray-300">{repo._count.executionLogs}</div>
-          <div className="text-[10px] text-gray-600 mt-0.5">executions</div>
+          <div className="text-lg font-mono text-gray-300">{repo._count.exportLogs}</div>
+          <div className="text-[10px] text-gray-600 mt-0.5">exports</div>
         </div>
         <div className="stat-card">
           <div className="text-lg font-mono text-gray-300">{invalidFiles.length}</div>
@@ -181,8 +181,8 @@ Why this skill exists.`}</pre>
                 </p>
               </div>
               <div className="flex items-center gap-4 ml-4 text-xs font-mono text-gray-600">
+                <span>v{skill.version}</span>
                 <span>p:{skill.priority}</span>
-                <span>c:{skill.contextBudgetCost}</span>
                 <svg className="w-3.5 h-3.5 text-gray-700 group-hover:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5l7 7-7 7" />
                 </svg>

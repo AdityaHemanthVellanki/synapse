@@ -31,31 +31,6 @@ export async function GET(
   const graph = buildDependencyGraph(skills, params.id);
   const analysis = analyzeGraph(graph);
 
-  // Most activated skills from execution logs
-  const logs = await prisma.executionLog.findMany({
-    where: { repositoryId: params.id },
-    select: { selectedSkills: true },
-  });
-
-  const activationCounts = new Map<string, number>();
-  for (const log of logs) {
-    for (const skillId of log.selectedSkills) {
-      activationCounts.set(skillId, (activationCounts.get(skillId) ?? 0) + 1);
-    }
-  }
-
-  const topActivated = Array.from(activationCounts.entries())
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 10)
-    .map(([skillId, count]) => {
-      const skill = skills.find((s) => s.id === skillId);
-      return {
-        skillId,
-        title: skill?.title ?? "Unknown",
-        activationCount: count,
-      };
-    });
-
   const domains = new Map<string, number>();
   for (const skill of skills) {
     domains.set(skill.domain, (domains.get(skill.domain) ?? 0) + 1);
@@ -76,8 +51,6 @@ export async function GET(
         }),
       })),
     },
-    topActivated,
     domains: Object.fromEntries(domains),
-    totalExecutions: logs.length,
   });
 }

@@ -29,7 +29,7 @@ export async function GET(
         select: {
           skillNodes: true,
           skillDependencies: true,
-          executionLogs: true,
+          exportLogs: true,
         },
       },
     },

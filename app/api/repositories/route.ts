@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
       _count: {
         select: {
           skillNodes: true,
-          executionLogs: true,
+          skillDependencies: true,
         },
       },
     },

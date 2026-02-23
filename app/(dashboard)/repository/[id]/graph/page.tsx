@@ -67,10 +67,11 @@ export default function GraphPage() {
 
   const repo = data.repository;
   const allDependencies = repo.skillNodes.flatMap((s) => s.dependenciesFrom);
+  const domains = new Set(repo.skillNodes.map((s) => s.domain));
 
   return (
     <div className="flex flex-col h-[calc(100vh-3.5rem)]" style={{ margin: "-2rem -1.5rem 0", padding: 0 }}>
-      {/* Minimal top bar overlaid on graph */}
+      {/* Top bar */}
       <div className="absolute top-16 left-6 z-10 flex items-center gap-4">
         <Link
           href={`/repository/${id}`}
@@ -83,6 +84,8 @@ export default function GraphPage() {
             <span>{analytics.analysis.totalNodes} nodes</span>
             <span className="text-gray-800">|</span>
             <span>{analytics.analysis.totalEdges} edges</span>
+            <span className="text-gray-800">|</span>
+            <span>{domains.size} domains</span>
             {analytics.analysis.cycles.length > 0 && (
               <>
                 <span className="text-gray-800">|</span>
@@ -93,6 +96,16 @@ export default function GraphPage() {
             )}
           </div>
         )}
+      </div>
+
+      {/* Export button overlay */}
+      <div className="absolute top-16 right-6 z-10">
+        <Link
+          href={`/repository/${id}/export`}
+          className="px-3 py-1.5 bg-white text-black rounded-md text-xs font-medium hover:bg-gray-200 transition-colors"
+        >
+          export to claude code
+        </Link>
       </div>
 
       <div className="flex flex-1 overflow-hidden">

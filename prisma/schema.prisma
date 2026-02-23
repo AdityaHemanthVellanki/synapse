@@ -71,7 +71,7 @@ model Repository {
   skillNodes        SkillNode[]
   skillDependencies SkillDependency[]
   fileIndices       FileIndex[]
-  executionLogs     ExecutionLog[]
+  exportLogs        ExportLog[]
 
   @@index([userId])
 }
@@ -142,16 +142,15 @@ model FileIndex {
   @@index([repositoryId])
 }
 
-model ExecutionLog {
-  id             String   @id @default(cuid())
-  repositoryId   String
-  query          String   @db.Text
-  selectedSkills String[]
-  executionPlan  Json
-  contextUsage   Float    @default(0)
-  createdAt      DateTime @default(now())
+model ExportLog {
+  id            String   @id @default(cuid())
+  repositoryId  String
+  exportedNodes String[]
+  format        String   @default("claude-code")
+  versionHash   String
+  createdAt     DateTime @default(now())
 
-  repository     Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  repository    Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
 
   @@index([repositoryId])
 }

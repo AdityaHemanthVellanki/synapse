@@ -14,7 +14,7 @@ interface Repository {
   lastSyncedAt: string | null;
   _count: {
     skillNodes: number;
-    executionLogs: number;
+    skillDependencies: number;
   };
 }
 
@@ -96,6 +96,12 @@ export default function DashboardPage() {
                     {repo._count.skillNodes}
                   </span>
                   <span className="text-xs text-gray-600 ml-1">skills</span>
+                </div>
+                <div className="text-right">
+                  <span className="text-sm font-mono text-gray-400">
+                    {repo._count.skillDependencies}
+                  </span>
+                  <span className="text-xs text-gray-600 ml-1">deps</span>
                 </div>
                 <svg
                   className="w-4 h-4 text-gray-700 group-hover:text-gray-500"
